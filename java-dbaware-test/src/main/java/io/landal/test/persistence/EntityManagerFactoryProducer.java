@@ -1,4 +1,4 @@
-package it.softecheng.gwe.core.test.persistence;
+package io.landal.test.persistence;
 
 import java.util.HashMap;
 import java.util.Map;
