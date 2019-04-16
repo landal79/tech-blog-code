@@ -4,6 +4,7 @@ import static org.junit.Assert.assertNotNull;
 
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import javax.transaction.UserTransaction;
 
 import org.apache.deltaspike.testcontrol.api.junit.CdiTestRunner;
@@ -11,12 +12,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(CdiTestRunner.class)
-public class PersistenceTest {
+public class PersistenceWithContextTest {
 
 	@Inject
 	protected UserTransaction transaction;
 
-	@Inject
+	@PersistenceContext
 	private EntityManager entityManager;
 
 	@Test
@@ -40,7 +41,7 @@ public class PersistenceTest {
 		assertNotNull(fromDb);
 		assertNotNull(fromDb.getId());
 
-		this.transaction.commit();
+//		this.transaction.commit();
 
 	}
 

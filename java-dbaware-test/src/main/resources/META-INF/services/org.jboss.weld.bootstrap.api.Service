@@ -1,1 +1,2 @@
 io.landal.test.transactions.TestingTransactionServices
+io.landal.test.persistence.TestingJpaInjectionServices

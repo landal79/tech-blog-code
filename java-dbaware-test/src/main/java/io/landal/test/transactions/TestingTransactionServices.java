@@ -19,6 +19,15 @@ public class TestingTransactionServices implements TransactionServices {
 
     @Override
     public void cleanup() {
+    	UserTransaction transaction = com.arjuna.ats.jta.UserTransaction.userTransaction();
+
+    	try {
+    		if(transaction.getStatus() == Status.STATUS_ACTIVE) {
+    			transaction.rollback();
+    		}
+		} catch (IllegalStateException | SecurityException | SystemException e) {
+			throw new RuntimeException(e);
+		}
     }
 
     @Override
