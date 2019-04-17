@@ -1,4 +1,4 @@
-package io.landal.test.model;
+package io.landal.test.support;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Disposes;

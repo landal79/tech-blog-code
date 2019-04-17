@@ -1,38 +1,16 @@
 package io.landal.test.persistence;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Type;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 
-import javax.el.ELResolver;
-import javax.el.ExpressionFactory;
-import javax.enterprise.context.spi.Context;
-import javax.enterprise.context.spi.Contextual;
-import javax.enterprise.context.spi.CreationalContext;
-import javax.enterprise.inject.spi.AnnotatedField;
-import javax.enterprise.inject.spi.AnnotatedMember;
-import javax.enterprise.inject.spi.AnnotatedMethod;
-import javax.enterprise.inject.spi.AnnotatedParameter;
-import javax.enterprise.inject.spi.AnnotatedType;
-import javax.enterprise.inject.spi.Bean;
-import javax.enterprise.inject.spi.BeanAttributes;
-import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.CDI;
-import javax.enterprise.inject.spi.Decorator;
-import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.InjectionPoint;
-import javax.enterprise.inject.spi.InjectionTarget;
-import javax.enterprise.inject.spi.InjectionTargetFactory;
-import javax.enterprise.inject.spi.InterceptionType;
-import javax.enterprise.inject.spi.Interceptor;
-import javax.enterprise.inject.spi.ObserverMethod;
-import javax.enterprise.inject.spi.ProducerFactory;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import javax.persistence.PersistenceContext;
+import javax.persistence.PersistenceUnit;
 
 import org.hibernate.cfg.Environment;
 import org.hibernate.dialect.H2Dialect;
@@ -44,28 +22,30 @@ import org.jboss.weld.injection.spi.helpers.SimpleResourceReference;
 
 public class TestingJpaInjectionServices implements JpaInjectionServices {
 
-	private EntityManagerFactory entityManagerFactory;
-
-	public TestingJpaInjectionServices() {
-
-	}
+	private Map<String, EntityManagerFactory> entityManagerFactoryMap = new HashMap<>();
+	private Map<String, EntityManager> entityManagerMap = new HashMap<>();
 
 	@Override
 	public void cleanup() {
-		this.entityManagerFactory.close();
+		entityManagerFactoryMap.values().forEach(emf -> emf.close());
+		entityManagerMap.values().forEach(em -> em.close());
 	}
 
 	@Override
 	public ResourceReferenceFactory<EntityManager> registerPersistenceContextInjectionPoint(InjectionPoint injectionPoint) {
 
-		if (this.entityManagerFactory == null) {
-			this.entityManagerFactory = createEntityManagerFactory();
-		}
-
 		return new ResourceReferenceFactory<EntityManager>() {
+
 			@Override
 			public ResourceReference<EntityManager> createResource() {
-				return new SimpleResourceReference<EntityManager>(entityManagerFactory.createEntityManager());
+				final PersistenceContext pcAnnotation = injectionPoint.getAnnotated().getAnnotation(PersistenceContext.class);
+				final String unitName = pcAnnotation.unitName();
+				final EntityManager entityManager = entityManagerMap.computeIfAbsent(unitName, (un) -> {
+					final EntityManagerFactory entityManagerFactory = entityManagerFactoryMap.computeIfAbsent(un, (key) -> createEntityManagerFactory(key));
+					return entityManagerFactory.createEntityManager();
+				});
+
+				return new SimpleResourceReference<EntityManager>(entityManager);
 			}
 		};
 	}
@@ -73,13 +53,12 @@ public class TestingJpaInjectionServices implements JpaInjectionServices {
 	@Override
 	public ResourceReferenceFactory<EntityManagerFactory> registerPersistenceUnitInjectionPoint(InjectionPoint injectionPoint) {
 
-		if (this.entityManagerFactory == null) {
-			this.entityManagerFactory = createEntityManagerFactory();
-		}
-
 		return new ResourceReferenceFactory<EntityManagerFactory>() {
 			@Override
 			public ResourceReference<EntityManagerFactory> createResource() {
+				final PersistenceUnit puAnnotation = injectionPoint.getAnnotated().getAnnotation(PersistenceUnit.class);
+				final String unitName = puAnnotation.unitName();
+				final EntityManagerFactory entityManagerFactory = entityManagerFactoryMap.computeIfAbsent(unitName, (un) -> createEntityManagerFactory(un));
 				return new SimpleResourceReference<EntityManagerFactory>(entityManagerFactory);
 			}
 		};
@@ -95,9 +74,11 @@ public class TestingJpaInjectionServices implements JpaInjectionServices {
 		throw new UnsupportedOperationException();
 	}
 
-	private EntityManagerFactory createEntityManagerFactory() {
+	private EntityManagerFactory createEntityManagerFactory(String unitName) {
+		Objects.requireNonNull(unitName);
+
 		Map<String, Object> props = new HashMap<>();
-       props.put("javax.persistence.bean.manager", new BeanManagerDelegate());
+		props.put("javax.persistence.bean.manager", CDI.current().getBeanManager());
 		props.put(Environment.HBM2DDL_AUTO, "create");
 		props.put("hibernate.validator.apply_to_ddl", false);
 		props.put(Environment.SCANNER_DISCOVERY, "class");
@@ -108,185 +89,11 @@ public class TestingJpaInjectionServices implements JpaInjectionServices {
 		props.put("hibernate.integration.envers.enabled", false);
 
 		// JNDI Connection provider
-		props.put(Environment.CONNECTION_PROVIDER,
-				org.hibernate.engine.jdbc.connections.internal.DatasourceConnectionProviderImpl.class.getName());
+		props.put(Environment.CONNECTION_PROVIDER, org.hibernate.engine.jdbc.connections.internal.DatasourceConnectionProviderImpl.class.getName());
 		props.put(Environment.JTA_PLATFORM, "JBossTS");
 
-		return Persistence.createEntityManagerFactory("testPU", props);
+		return Persistence.createEntityManagerFactory(unitName.trim().length() == 0 ? null : unitName, props);
+//		return Persistence.createEntityManagerFactory("testPU", props);
 	}
-
-}
-
-class BeanManagerDelegate implements BeanManager {
-
-	private BeanManager beanManager;
-
-	private BeanManager beanManager() {
-		if(beanManager == null) {
-			this.beanManager = CDI.current().getBeanManager();
-		}
-
-		return beanManager;
-	}
-
-	public Object getReference(Bean<?> bean, Type beanType, CreationalContext<?> ctx) {
-		return beanManager().getReference(bean, beanType, ctx);
-	}
-
-	public Object getInjectableReference(InjectionPoint ij, CreationalContext<?> ctx) {
-		return beanManager().getInjectableReference(ij, ctx);
-	}
-
-	public <T> CreationalContext<T> createCreationalContext(Contextual<T> contextual) {
-		return beanManager().createCreationalContext(contextual);
-	}
-
-	public Set<Bean<?>> getBeans(Type beanType, Annotation... qualifiers) {
-		return beanManager().getBeans(beanType, qualifiers);
-	}
-
-	public Set<Bean<?>> getBeans(String name) {
-		return beanManager().getBeans(name);
-	}
-
-	public Bean<?> getPassivationCapableBean(String id) {
-		return beanManager().getPassivationCapableBean(id);
-	}
-
-	public <X> Bean<? extends X> resolve(Set<Bean<? extends X>> beans) {
-		return beanManager().resolve(beans);
-	}
-
-	public void validate(InjectionPoint injectionPoint) {
-		beanManager().validate(injectionPoint);
-	}
-
-	public void fireEvent(Object event, Annotation... qualifiers) {
-		beanManager().fireEvent(event, qualifiers);
-	}
-
-	public <T> Set<ObserverMethod<? super T>> resolveObserverMethods(T event, Annotation... qualifiers) {
-		return beanManager().resolveObserverMethods(event, qualifiers);
-	}
-
-	public List<Decorator<?>> resolveDecorators(Set<Type> types, Annotation... qualifiers) {
-		return beanManager().resolveDecorators(types, qualifiers);
-	}
-
-	public List<Interceptor<?>> resolveInterceptors(InterceptionType type, Annotation... interceptorBindings) {
-		return beanManager().resolveInterceptors(type, interceptorBindings);
-	}
-
-	public boolean isScope(Class<? extends Annotation> annotationType) {
-		return beanManager().isScope(annotationType);
-	}
-
-	public boolean isNormalScope(Class<? extends Annotation> annotationType) {
-		return beanManager().isNormalScope(annotationType);
-	}
-
-	public boolean isPassivatingScope(Class<? extends Annotation> annotationType) {
-		return beanManager().isPassivatingScope(annotationType);
-	}
-
-	public boolean isQualifier(Class<? extends Annotation> annotationType) {
-		return beanManager().isQualifier(annotationType);
-	}
-
-	public boolean isInterceptorBinding(Class<? extends Annotation> annotationType) {
-		return beanManager().isInterceptorBinding(annotationType);
-	}
-
-	public boolean isStereotype(Class<? extends Annotation> annotationType) {
-		return beanManager().isStereotype(annotationType);
-	}
-
-	public Set<Annotation> getInterceptorBindingDefinition(Class<? extends Annotation> bindingType) {
-		return beanManager().getInterceptorBindingDefinition(bindingType);
-	}
-
-	public Set<Annotation> getStereotypeDefinition(Class<? extends Annotation> stereotype) {
-		return beanManager().getStereotypeDefinition(stereotype);
-	}
-
-	public boolean areQualifiersEquivalent(Annotation qualifier1, Annotation qualifier2) {
-		return beanManager().areQualifiersEquivalent(qualifier1, qualifier2);
-	}
-
-	public boolean areInterceptorBindingsEquivalent(Annotation interceptorBinding1, Annotation interceptorBinding2) {
-		return beanManager().areInterceptorBindingsEquivalent(interceptorBinding1, interceptorBinding2);
-	}
-
-	public int getQualifierHashCode(Annotation qualifier) {
-		return beanManager().getQualifierHashCode(qualifier);
-	}
-
-	public int getInterceptorBindingHashCode(Annotation interceptorBinding) {
-		return beanManager().getInterceptorBindingHashCode(interceptorBinding);
-	}
-
-	public Context getContext(Class<? extends Annotation> scopeType) {
-		return beanManager().getContext(scopeType);
-	}
-
-	public ELResolver getELResolver() {
-		return beanManager().getELResolver();
-	}
-
-	public ExpressionFactory wrapExpressionFactory(ExpressionFactory expressionFactory) {
-		return beanManager().wrapExpressionFactory(expressionFactory);
-	}
-
-	public <T> AnnotatedType<T> createAnnotatedType(Class<T> type) {
-		return beanManager().createAnnotatedType(type);
-	}
-
-	public <T> InjectionTarget<T> createInjectionTarget(AnnotatedType<T> type) {
-		return beanManager().createInjectionTarget(type);
-	}
-
-	public <T> InjectionTargetFactory<T> getInjectionTargetFactory(AnnotatedType<T> annotatedType) {
-		return beanManager().getInjectionTargetFactory(annotatedType);
-	}
-
-	public <X> ProducerFactory<X> getProducerFactory(AnnotatedField<? super X> field, Bean<X> declaringBean) {
-		return beanManager().getProducerFactory(field, declaringBean);
-	}
-
-	public <X> ProducerFactory<X> getProducerFactory(AnnotatedMethod<? super X> method, Bean<X> declaringBean) {
-		return beanManager().getProducerFactory(method, declaringBean);
-	}
-
-	public <T> BeanAttributes<T> createBeanAttributes(AnnotatedType<T> type) {
-		return beanManager().createBeanAttributes(type);
-	}
-
-	public BeanAttributes<?> createBeanAttributes(AnnotatedMember<?> type) {
-		return beanManager().createBeanAttributes(type);
-	}
-
-	public <T> Bean<T> createBean(BeanAttributes<T> attributes, Class<T> beanClass,
-			InjectionTargetFactory<T> injectionTargetFactory) {
-		return beanManager().createBean(attributes, beanClass, injectionTargetFactory);
-	}
-
-	public <T, X> Bean<T> createBean(BeanAttributes<T> attributes, Class<X> beanClass,
-			ProducerFactory<X> producerFactory) {
-		return beanManager().createBean(attributes, beanClass, producerFactory);
-	}
-
-	public InjectionPoint createInjectionPoint(AnnotatedField<?> field) {
-		return beanManager().createInjectionPoint(field);
-	}
-
-	public InjectionPoint createInjectionPoint(AnnotatedParameter<?> parameter) {
-		return beanManager().createInjectionPoint(parameter);
-	}
-
-	public <T extends Extension> T getExtension(Class<T> extensionClass) {
-		return beanManager().getExtension(extensionClass);
-	}
-
-
 
 }
