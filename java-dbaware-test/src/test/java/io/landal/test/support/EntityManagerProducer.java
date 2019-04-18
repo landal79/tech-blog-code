@@ -3,6 +3,7 @@ package io.landal.test.support;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
+import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceUnit;
@@ -11,7 +12,7 @@ import javax.transaction.TransactionScoped;
 @ApplicationScoped
 public class EntityManagerProducer {
 
-    @PersistenceUnit
+    @Inject
     private EntityManagerFactory entityManagerFactory;
 
     @Produces

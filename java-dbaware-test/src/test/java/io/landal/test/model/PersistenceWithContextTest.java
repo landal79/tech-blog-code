@@ -41,8 +41,6 @@ public class PersistenceWithContextTest {
 		assertNotNull(fromDb);
 		assertNotNull(fromDb.getId());
 
-//		this.transaction.commit();
-
 	}
 
 }

@@ -20,6 +20,11 @@ import org.jboss.weld.injection.spi.ResourceReference;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 import org.jboss.weld.injection.spi.helpers.SimpleResourceReference;
 
+/**
+ *
+ * JPA integration, it makes possible to use the annotations: {@link PersistenceContext} and {@link PersistenceUnit}.
+ * Beware both {@code EntityManagerFactory} and {@code EntityManager} are singleton for the current container instance.
+ */
 public class TestingJpaInjectionServices implements JpaInjectionServices {
 
 	private Map<String, EntityManagerFactory> entityManagerFactoryMap = new HashMap<>();

@@ -15,14 +15,20 @@ import org.hibernate.cfg.Environment;
 import org.hibernate.dialect.H2Dialect;
 
 
+/**
+ * {@link EntityManagerFactory} producer.
+ *
+ * @author alandini
+ *
+ */
 @ApplicationScoped
 public class EntityManagerFactoryProducer {
 
     @Inject
     private BeanManager beanManager;
 
-//    @Produces
-//    @ApplicationScoped
+    @Produces
+    @ApplicationScoped
     public EntityManagerFactory produceEntityManagerFactory() {
     	Map<String, Object> props = new HashMap<>();
         props.put("javax.persistence.bean.manager", beanManager);
@@ -42,8 +48,8 @@ public class EntityManagerFactoryProducer {
         return Persistence.createEntityManagerFactory("testPU", props);
     }
 
-//    public void close(@Disposes EntityManagerFactory entityManagerFactory) {
-//        entityManagerFactory.close();
-//    }
+	public void close(@Disposes EntityManagerFactory entityManagerFactory) {
+		entityManagerFactory.close();
+	}
 
 }
