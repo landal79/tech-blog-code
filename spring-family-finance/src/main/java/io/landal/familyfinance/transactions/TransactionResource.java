@@ -2,8 +2,6 @@ package io.landal.familyfinance.transactions;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 import javax.validation.Valid;
@@ -48,7 +46,7 @@ public class TransactionResource {
 		}
 
 		Transaction saved = transactionRepository.save(transaction);
-		return ResponseEntity.created(new URI(BASE_PATH + saved.getId())).build();
+		return ResponseEntity.created(new URI(BASE_PATH + "/" + saved.getId())).build();
 	}
 
 	@PutMapping
@@ -62,13 +60,8 @@ public class TransactionResource {
 	}
 
 	@GetMapping("/")
-	public ResponseEntity<List<Transaction>> findAll() {
-
-		Iterable<Transaction> source = transactionRepository.findAll();
-		List<Transaction> target = new ArrayList<>();
-		source.forEach(target::add);
-
-		return new ResponseEntity<>(target, HttpStatus.OK);
+	public ResponseEntity<Iterable<Transaction>> findAll() {
+		return new ResponseEntity<>(transactionRepository.findAll(), HttpStatus.OK);
 	}
 
 }
