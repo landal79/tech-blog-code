@@ -98,7 +98,6 @@ public class TestingJpaInjectionServices implements JpaInjectionServices {
 		props.put(Environment.JTA_PLATFORM, "JBossTS");
 
 		return Persistence.createEntityManagerFactory(unitName.trim().length() == 0 ? null : unitName, props);
-//		return Persistence.createEntityManagerFactory("testPU", props);
 	}
 
 }
