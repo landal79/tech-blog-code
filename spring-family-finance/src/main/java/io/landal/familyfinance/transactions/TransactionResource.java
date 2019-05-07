@@ -1,7 +1,7 @@
 package io.landal.familyfinance.transactions;
 
-import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.Optional;
 
 import javax.validation.Valid;
@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @RestController
 @RequestMapping(TransactionResource.BASE_PATH)
@@ -35,8 +37,7 @@ public class TransactionResource {
 			return ResponseEntity.notFound().build();
 		}
 
-		return transaction.map(t -> new ResponseEntity<>(t, HttpStatus.OK))
-				.orElse(ResponseEntity.ok().<Transaction>build());
+		return ResponseEntity.of(transaction);
 	}
 
 	@PostMapping
@@ -46,7 +47,11 @@ public class TransactionResource {
 		}
 
 		Transaction saved = transactionRepository.save(transaction);
-		return ResponseEntity.created(new URI(BASE_PATH + "/" + saved.getId())).build();
+
+		UriComponents components = UriComponentsBuilder.fromUriString(BASE_PATH + "/{id}")
+				.buildAndExpand(Collections.singletonMap("id", saved.getId()));
+
+		return ResponseEntity.created(components.toUri()).build();
 	}
 
 	@PutMapping
