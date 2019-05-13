@@ -14,12 +14,17 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.transaction.TestTransaction;
 
+import io.landal.familyfinance.user.UserRepository;
+
 @RunWith(SpringRunner.class)
 @DataJpaTest
 public class TransactionRepositoryTest {
 
 	@Autowired
 	private TransactionRepository transactionRepository;
+
+	@Autowired
+	private UserRepository userRepository;
 
 	@Test
 	public void test_insert() {
@@ -28,6 +33,7 @@ public class TransactionRepositoryTest {
 		t.setDescription("desc");
 		t.setDate(LocalDate.now());
 		t.setAmount(new BigDecimal(10));
+		t.setUser(userRepository.findByUsername("user"));
 		Transaction saved = transactionRepository.save(t);
 		assertThat(saved).isNotNull();
 		assertThat(saved.getId()).isNotNull();
@@ -57,6 +63,7 @@ public class TransactionRepositoryTest {
 		t.setDescription("desc");
 		t.setDate(LocalDate.now());
 		t.setAmount(new BigDecimal(10));
+		t.setUser(userRepository.findByUsername("user"));
 		transactionRepository.save(t);
 
 		TestTransaction.flagForCommit();

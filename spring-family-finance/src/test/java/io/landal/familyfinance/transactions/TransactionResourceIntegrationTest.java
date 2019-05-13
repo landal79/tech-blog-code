@@ -16,6 +16,8 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import io.landal.familyfinance.user.User;
+
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class TransactionResourceIntegrationTest {
@@ -31,6 +33,7 @@ public class TransactionResourceIntegrationTest {
 		t.setAmount(new BigDecimal(100.00));
 		t.setDate(LocalDate.of(2010, 5, 15));
 		t.setDescription("an expense");
+		t.setUser(new User(1L));
 
 		ResponseEntity<Void> responseEntity = restTemplate.postForEntity(TransactionResource.BASE_PATH, t, Void.class);
 		assertEquals(201, responseEntity.getStatusCodeValue());

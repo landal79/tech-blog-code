@@ -25,6 +25,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import io.landal.familyfinance.user.User;
+
 /**
  * Rest controller test without dependencies,
  * the dependecies are mocked.
@@ -55,6 +57,7 @@ public class TransactionResourceTest {
 		t.setAmount(new BigDecimal(100.00));
 		t.setDate(LocalDate.of(2010, 5, 15));
 		t.setDescription("an expense");
+		t.setUser(new User(1L));
 
 		given(transactionRepository.findById(anyLong())).willReturn(Optional.<Transaction>of(t));
 

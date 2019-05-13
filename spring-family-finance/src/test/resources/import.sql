@@ -1,0 +1,1 @@
+insert into user(id,name,surname,username,password) values (1, 'user', 'user','user', 'xxxx');
