@@ -34,7 +34,7 @@ import org.springframework.web.context.WebApplicationContext;
 @WebMvcTest
 public class TransactionResourceTest {
 
-	protected MockMvc mvc;
+	private MockMvc mvc;
 
 	@Autowired
 	private WebApplicationContext webApplicationContext;
