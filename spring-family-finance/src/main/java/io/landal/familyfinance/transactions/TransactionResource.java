@@ -54,9 +54,13 @@ public class TransactionResource {
 		return ResponseEntity.created(components.toUri()).build();
 	}
 
-	@PutMapping
-	public ResponseEntity<Void> update(@Valid @RequestBody Transaction transaction) {
+	@PutMapping("/{id}")
+	public ResponseEntity<Void> update(@PathVariable Long id, @Valid @RequestBody Transaction transaction) {
 		if (transaction.getId() == null) {
+			throw new IllegalArgumentException();
+		}
+
+		if(id.equals(transaction.getId())) {
 			throw new IllegalArgumentException();
 		}
 
