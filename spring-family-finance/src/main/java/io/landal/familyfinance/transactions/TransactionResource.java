@@ -31,7 +31,7 @@ public class TransactionResource {
 	}
 
 	@GetMapping("/{id}")
-	public ResponseEntity<Transaction> findById(@PathVariable Long id) {
+	public ResponseEntity<Transaction> findById(@PathVariable("id") Long id) {
 		Optional<Transaction> transaction = transactionRepository.findById(id);
 		if (!transaction.isPresent()) {
 			return ResponseEntity.notFound().build();
@@ -55,12 +55,12 @@ public class TransactionResource {
 	}
 
 	@PutMapping("/{id}")
-	public ResponseEntity<Void> update(@PathVariable Long id, @Valid @RequestBody Transaction transaction) {
+	public ResponseEntity<Void> update(@PathVariable("id") Long id, @Valid @RequestBody Transaction transaction) {
 		if (transaction.getId() == null) {
 			throw new IllegalArgumentException();
 		}
 
-		if(id.equals(transaction.getId())) {
+		if(!id.equals(transaction.getId())) {
 			throw new IllegalArgumentException();
 		}
 
